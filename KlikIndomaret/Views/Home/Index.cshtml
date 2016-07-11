@@ -1,0 +1,194 @@
+﻿@{
+    ViewBag.Title = "Print Pareto";
+}
+@Styles.Render("~/Content/select2")
+@Scripts.Render("~/bundles/select2")
+<h2>@ViewBag.Title.</h2>
+<form action="/Home/Downloadpdf" method="get">
+    <!--Input Date-->
+    <div class="row">
+        <div class="col-md-12 form-inline">
+            <h4>Use a local account to log in.</h4>
+            <hr />
+            <input type="text" id="DTfrom" class="form-control input-sm" placeholder="Transaction From" style="width:193px">
+            <input type="text" id="DTto" class="form-control input-sm" placeholder="Transaction From" style="width:193px">
+        </div>
+    </div>
+    <br />
+    <div id="Nasional" class="row">
+        <div class="col-md-2">
+            <label class="checkbox-inline" style="font-weight:bold"><input checked="checked" type="checkbox" value="" id="cknasional">Nasional</label>
+        </div>
+        <div id="divnasional" class="col-md-10">
+        </div>
+    </div>
+    <br />
+    <div id="Cabang" class="row">
+        <div class="col-md-2">
+            <label class="checkbox-inline" style="font-weight:bold"><input type="checkbox" id="ckcabang" value="">Cabang</label>
+        </div>
+        <div id="divcabang" class="col-md-10 form-inline">
+        </div>
+    </div>
+    <br />
+    <div id="Toko" class="row">
+        <div class="col-md-2">
+            <label class="checkbox-inline" style="font-weight:bold"><input type="checkbox" id="cktoko" value="">Toko</label>
+        </div>
+        <div id="divtoko" class="col-md-10 form-inline">
+        </div>
+    </div>
+    <br />
+    <input type="hidden" id="searchtype"/>
+    <a class="btn btn-primary" id="btnReport" href="/Home/Downloadpdf">Export Pdf</a>
+</form>
+<script id="javascriptDropdown">
+        //var
+        var cknasional = $('#cknasional'); var ckcabang = $('#ckcabang'); var cktoko = $('#cktoko');
+        var divnasional = $('#divnasional'); var divcabang = $('#divcabang'); var divtoko = $('#divtoko');
+        var strddlsorting = '<select id="ddlsorting" style="width:200px">' + '<option value=""></option>' + '<option value="qty">Sorting By: Qty</option>' + '<option value="rp">Sorting By: Rp</option>' + '<option value="freq">Sorting By: Freq</option>' + '</select>';
+        var strddlcabang = '<select id="ddlcabang" style="width:200px"></select> &nbsp';
+        var strddltoko = '<select id="ddltoko" style="width:200px"><option value=""></option></select> &nbsp';
+        var btnreport = $("#btnReport");
+        //Check Uncheck
+        cknasional.click(function () {
+            $("#searchtype").val("nasional");
+            ckcabang.prop('checked', false);
+            cktoko.prop('checked', false);
+            $(this).prop('checked', true);
+            divcabang.html(''); divtoko.html(''); divnasional.html('');
+            divnasional.append(strddlsorting);
+            $('#ddlsorting').select2({ placeholder: "Pilih Sorting", allowClear: true }); $('#ddlsorting').select2("open");            
+        });
+
+        ckcabang.click(function () {
+            $("#searchtype").val("cabang");
+            cknasional.prop('checked', false);
+            cktoko.prop('checked', false);
+            $(this).prop('checked', true);
+            divnasional.html(''); divtoko.html(''); divcabang.html('');
+            divcabang.append(strddlcabang);
+            divcabang.append(strddlsorting);            
+            $('#ddlsorting').select2({ placeholder: "Pilih Sorting", allowClear: true });
+            loadRegion();
+        });
+
+        cktoko.click(function () {
+            $("#searchtype").val("toko");
+            cknasional.prop('checked', false);
+            ckcabang.prop('checked', false);
+            $(this).prop('checked', true);
+            divcabang.html(''); divnasional.html(''); divtoko.html('');
+            divtoko.append(strddlcabang);
+            divtoko.append(strddltoko);
+            divtoko.append(strddlsorting);
+            $('#ddltoko').select2({ placeholder: "Pilih Toko", allowClear: true });
+            $('#ddlsorting').select2({ placeholder: "Pilih Sorting", allowClear: true });
+            loadRegion();
+        });
+
+        $(function () {
+            $("#DTfrom").datepicker({
+                changeMonth: true,
+                changeYear: true
+            });
+            $("#DTto").datepicker({
+                changeMonth: true,
+                changeYear: true
+            });
+
+            $(document).ready(function () {
+                divnasional.append(strddlsorting);
+                $('#ddlsorting').select2({ placeholder: "Pilih Sorting", allowClear: true }); $('#ddlsorting').select2("open");
+                $("#searchtype").val("nasional");
+            });
+
+
+        });
+
+        function loadRegion() {
+            $.ajax({
+                cache: false,
+                contentType: "application/json; charset=utf-8",
+                type: "GET",
+                url: "@(Url.Action("GetRegion"))",
+                dataType: "json",
+                success: function (data) {
+                    $('#ddlcabang').empty();
+                    $('#ddlcabang').append($('<option></option>').val("").html(""));
+                    $.each(data, function (id, option) {
+                        $('#ddlcabang').append($('<option></option>').val(option.id).html(option.name));
+                    });
+                    $('#ddlcabang').select2({ placeholder: "Pilih Cabang", allowClear: true });
+
+                    if (data.length > 0) {//jika ada datanya
+                        $('#ddlcabang').select2("open");
+                        initCabang();
+                    } else {
+                        $('#ddlcabang').prop("disabled", true);
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    alert('Failed to retrieve Region.');
+                }
+            });
+        }
+
+        function loadStore(DDLValueX) {
+            $.ajax({
+                cache: false,
+                contentType: "application/json; charset=utf-8",
+                type: "GET",
+                url: "@(Url.Action("GetStores"))",
+                dataType: "json",
+                data: { "KodeDcX": DDLValueX },
+                success: function (data) {
+                    $('#ddltoko').select2("val", "")
+                    $('#ddltoko').empty();
+                    $('#ddltoko').append($('<option></option>').val("").html(""));
+                    $.each(data, function (id, option) {
+                        $('#ddltoko').append($('<option></option>').val(option.id).html(option.name));
+                    });
+                    if (data.length > 0) {//jika ada datanya
+                        $('#ddltoko').select2("open");
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    alert('Failed to retrieve Store.');
+                }
+            });
+        }
+
+        function initCabang() {
+            $('#ddlcabang').change(function () {
+                var DDLValue = this.value;
+                if ($('#ddltoko').length) {
+                    loadStore(DDLValue);
+                }
+            });
+        }
+        
+        btnreport.click(function (event) {
+            event.preventDefault();           
+            if ($('#DTfrom').val() == "" || $('#DTto').val() == "") { alert('Tanggal Transaksi tidak boleh Kosong'); return; }
+            
+            if ($('#ddlcabang').length) {
+                if ($('#ddlcabang').val() == "") { alert('Cabang Harus dipilih'); return }
+            }
+            if ($('#ddltoko').length) {
+                if ($('#ddltoko').val() == "") { alert('toko Harus dipilih'); return }
+            }
+
+            if ($('#ddlsorting').val() == "") { alert('Sorting Harus dipilih'); return }
+
+            var url = [];
+            url.push($(this).attr("href") + "?");            
+            url.push("searchtype=" + $('#searchtype').val());
+            if ($('#DTfrom').val()) url.push("dtfrom=" + $('#DTfrom').val());
+            if ($('#DTfrom').val()) url.push("dtto=" + $('#DTto').val());
+            if ($('#ddlcabang').val()) url.push("cabang=" + $('#ddlcabang').val());
+            if ($('#ddltoko').val()) url.push("toko=" + $('#ddltoko').val());
+            if ($('#ddlsorting').val()) url.push("sorting=" + $('#ddlsorting').val());
+            window.open(url.join('&'),"_blank");
+        });        
+</script>
